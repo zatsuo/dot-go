@@ -18,6 +18,10 @@
 1. **dot-solid** で ドット絵を開く → 1 体を選んで「正面にして 立体を作る」→ 横・後ろの絵があれば足す → 向きを変えながら描き直す → 保存
 2. **dot-godough-motion** で そのモデルを開く → コマにポーズをつける → Aseprite / GIF / シートに書き出す
 
+8 方向の歩きスプライト (シート PNG・Aseprite・GIF) だけなら、dot-solid の右の「歩き (8 方向)」からすぐ出せます。
+
+![8 方向の歩き](dot-solid/shots/walk8_sample.png)
+
 ## 動かすもの
 
 - [Godot 4.6](https://godotengine.org/) (dot-godough は C# を使うので **.NET 版** と .NET SDK。ほかの 2 つは GDScript だけなので どちらの版でも動く)

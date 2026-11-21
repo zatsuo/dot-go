@@ -133,5 +133,10 @@ func run(m, dir: String) -> void:
 	await wait(1.0)
 	note("再生: 動いている %s・いまのコマ %d" % [main.playing, main.frame + 1])
 	main.play(false)
+	var nclip: int = main.clips.size()
+	var w8: bool = main.export_walk8(out.path_join("walk8_auto.png"))
+	var w8i := Image.load_from_file(out.path_join("walk8_auto.png"))
+	note("歩き 8 方向: シート %s (%d 列 × %d 行)・Aseprite %s・GIF %s・アニメの数 %d → %d" % [w8, w8i.get_width() / main.model.w, w8i.get_height() / main.model.h,
+			main.export_walk8(out.path_join("walk8_auto.aseprite")), main.export_walk8(out.path_join("walk8_auto.gif")), nclip, main.clips.size()])
 	note("おわり")
 	main.get_tree().quit()

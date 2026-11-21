@@ -582,6 +582,26 @@ func export_turn(path: String, n: int, walk := false) -> bool:
 	return AnimExport.save_ase(frames, path, int(round(1000.0 / maxf(float(c.fps), 1.0))), [{"name": "一周", "from": 0, "to": n - 1}])
 
 
+## 8 方向の歩きのスプライト: 「歩き」という名前のアニメ (無ければ 立体の歩き 4 コマを作って足す) を、拡張子で シート PNG / Aseprite / GIF に
+func export_walk8(path: String) -> bool:
+	if model == null:
+		return false
+	var wi := -1
+	for i in clips.size():
+		if str(clips[i].name) == "歩き":
+			wi = i
+	if wi < 0:
+		make_walk()
+		wi = clips.size() - 1
+	var keep := clip_i
+	clip_i = wi
+	var ext := path.get_extension().to_lower()
+	var ok: bool = export_ase(path, false, true) if ext == "aseprite" else (export_gif(path, true) if ext == "gif" else export_sheet(path))
+	clip_i = keep
+	refresh()
+	return ok
+
+
 ## シート (PNG): いまのアニメ。行 = 8 方向、列 = コマ。となりに .json (コマの大きさ・速さ・向き)
 func export_sheet(path: String) -> bool:
 	if model == null:
@@ -1132,6 +1152,18 @@ func _build_ui() -> void:
 	_button(rv, "GIF (この向き)", func(): _ask_export("gif", "GIF ", func(p: String): return export_gif(p, false)))
 	_button(rv, "GIF (8 方向を並べる)", func(): _ask_export("gif", "GIF ", func(p: String): return export_gif(p, true)))
 	_button(rv, "シート PNG (行 = 8 方向、列 = コマ)", func(): _ask_export("png", "シート", export_sheet), "となりに .json (コマの大きさ・速さ) も出ます")
+
+	_head(rv, "歩き (8 方向)")
+	_note(rv, "「歩き」のアニメを 8 方向で書き出します (無ければ 立体の歩き 4 コマで作ります)。シートは 行 = 向き、列 = コマ。")
+	for it in [["シート PNG", "png"], ["Aseprite (向きごとにタグ)", "aseprite"], ["GIF (8 方向を並べる)", "gif"]]:
+		_button(rv, "歩き 8 方向: " + it[0], func():
+			if model == null:
+				_hint.text = "先にモデルを開いてください"
+				return
+			_ask(FileDialog.FILE_MODE_SAVE_FILE, ["*." + it[1]], "walk8." + it[1], func(p: String):
+				if not p.to_lower().ends_with("." + it[1]):
+					p += "." + it[1]
+				_hint.text = ("歩きを書き出しました: " + p) if export_walk8(p) else ("書き出せませんでした: " + p)))
 
 	_head(rv, "ぐるっと一周")
 	_note(rv, "8 方向より細かい向きで順に描きます。絵を決めた向きの あいだは推定です。")

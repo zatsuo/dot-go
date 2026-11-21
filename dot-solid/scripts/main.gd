@@ -9,6 +9,7 @@ const DIR_NAMES := ["正面", "左ななめ前", "左", "左ななめ後ろ", "�
 const TOOLS := ["えんぴつ", "消しゴム", "バケツ", "線", "四角 (枠)", "四角 (ぬり)", "スポイト"]
 const POSE_NAMES := ["立ち", "歩き 1", "歩き 2", "走り", "ばんざい", "T の字", "すわる", "おじぎ", "手をあげる"]
 const PAINT_PARTS := [1, 2, 3, 4, 5, 6]
+const WALK_FPS := 6.0               ## 歩きのスプライトの速さ (コマ/秒)
 const MARGIN := Vector3i(4, 3, 2)    ## 紙の余白: 左右・上・下 (画素)
 const SETTINGS := [                  ## [名前, ラベル, 最小, 最大, きざみ, 説明]
 	["front_reach", "正面の顔を使う角度", 45, 85, 2.5, "頭が 正面の絵 (ずらした顔) を使いつづける角度"],
@@ -622,6 +623,61 @@ func export_sheet(path: String) -> bool:
 	return im.save_png(path) == OK
 
 
+## 歩きのコマ (4 枚) を 向き y で描く。ポーズは 立体の「歩き」(右足 → 両足 → 左足 → 両足)
+func walk_frames(y: float) -> Array:
+	var out := []
+	if solid == null:
+		return out
+	for k in solid.walk_cycle():
+		solid.pose = k.pose
+		solid.root = Vector3(k.root)
+		out.append(solid.render(y))
+	solid.pose = {}
+	solid.root = Vector3.ZERO
+	return out
+
+
+## 8 方向の歩きのスプライト。拡張子で決める:
+##  .png = シート (行 = 8 方向、列 = コマ) + となりに .json (コマの大きさ・速さ・行の向き)
+##  .aseprite = 向きごとにタグ (「歩き 正面」…)。.gif = 8 方向を 4 × 2 に並べて動かす
+func export_walk(path: String) -> bool:
+	if solid == null:
+		return false
+	var rows := []
+	for d in 8:
+		rows.append(walk_frames(d * 45.0))
+	var n: int = rows[0].size()
+	var fw: int = solid.w
+	var fh: int = solid.h
+	var ext := path.get_extension().to_lower()
+	if ext == "aseprite" or ext == "ase":
+		var frames := []
+		var tags := []
+		for d in 8:
+			tags.append({"name": "歩き " + DIR_NAMES[d], "from": frames.size(), "to": frames.size() + n - 1})
+			frames.append_array(rows[d])
+		return AnimExport.save_ase(frames, path, int(round(1000.0 / WALK_FPS)), tags)
+	if ext == "gif":
+		var gf := []
+		for f in n:
+			var im := Image.create_empty(fw * 4, fh * 2, false, Image.FORMAT_RGBA8)
+			for d in 8:
+				im.blit_rect(rows[d][f], Rect2i(0, 0, fw, fh), Vector2i((d % 4) * fw, (d / 4) * fh))
+			gf.append(im)
+		return AnimExport.save_gif(gf, path, int(round(100.0 / WALK_FPS)), 2)
+	var sheet := Image.create_empty(fw * n, fh * 8, false, Image.FORMAT_RGBA8)
+	for d in 8:
+		for f in n:
+			sheet.blit_rect(rows[d][f], Rect2i(0, 0, fw, fh), Vector2i(f * fw, d * fh))
+	if sheet.save_png(path) != OK:
+		return false
+	var jf := FileAccess.open(path.get_basename() + ".json", FileAccess.WRITE)
+	if jf != null:
+		jf.store_string(JSON.stringify({"name": "歩き", "frame_w": fw, "frame_h": fh, "frames": n, "fps": WALK_FPS, "loop": true,
+				"rows": DIR_NAMES, "row_yaw": [0, 45, 90, 135, 180, 225, 270, 315]}, " "))
+	return true
+
+
 ## 保存してから、モーションのアプリで開く
 func open_in_motion() -> void:
 	if solid == null:
@@ -1136,7 +1192,14 @@ func _build_ui() -> void:
 		_hint.text = ("書き出しました: " + p) if export_png(p if p.ends_with(".png") else p + ".png") else "書き出せませんでした"))
 	_button(rv, "PNG (8 方向を横に並べる)", func(): _ask(FileDialog.FILE_MODE_SAVE_FILE, ["*.png"], model_name + "_8.png", func(p: String):
 		_hint.text = ("書き出しました: " + p) if export_sheet(p if p.ends_with(".png") else p + ".png") else "書き出せませんでした"))
-	_note(rv, "動き (アニメ)・Aseprite・GIF は、保存したモデルを「モーションで開く」で。")
+	_head(rv, "歩き (8 方向)")
+	_note(rv, "立体の歩き 4 コマを 8 方向で。シートは 行 = 向き (正面・左ななめ前・左…)、列 = コマ。")
+	for it in [["シート PNG", "png"], ["Aseprite (向きごとにタグ)", "aseprite"], ["GIF (8 方向を並べる)", "gif"]]:
+		_button(rv, it[0], func(): _ask(FileDialog.FILE_MODE_SAVE_FILE, ["*." + it[1]], (model_name if model_name != "" else "キャラ") + "_walk8." + it[1], func(p: String):
+			if not p.to_lower().ends_with("." + it[1]):
+				p += "." + it[1]
+			_hint.text = ("歩きを書き出しました: " + p) if export_walk(p) else "書き出せませんでした"))
+	_note(rv, "ほかの動き (アニメ) は、保存したモデルを「モーションで開く」で。")
 
 	_hint = Label.new()
 	_hint.text = "B えんぴつ　E 消しゴム　G バケツ　L 線　U 四角　I スポイト　← → 向き　Ctrl+Z 元に戻す"

@@ -120,6 +120,28 @@ func run(m, dir: String) -> void:
 	var opened: bool = main.open_any(out.path_join("test.dotmodel.json"))
 	note("保存 %s・開く %s・中身 %s" % [saved, opened, "同じ" if JSON.stringify(main.to_doc()) == doc1 else "ちがう"])
 	note("書き出し: PNG %s・8 方向 %s" % [main.export_png(out.path_join("one.png")), main.export_sheet(out.path_join("eight.png"))])
+	# 8 方向の歩き: シート (8 行 × 4 列)・Aseprite (タグ 8 つ)・GIF。コマが紙のはしで切れていないか (はしの画素) も数える
+	var ok_png: bool = main.export_walk(out.path_join("walk8.png"))
+	var ok_ase: bool = main.export_walk(out.path_join("walk8.aseprite"))
+	var ok_gif: bool = main.export_walk(out.path_join("walk8.gif"))
+	var wsheet := Image.load_from_file(out.path_join("walk8.png"))
+	var fw: int = main.solid.w
+	var fh: int = main.solid.h
+	var edge := 0
+	var moving := 0
+	for d in 8:
+		var f0 := wsheet.get_region(Rect2i(0, d * fh, fw, fh))
+		for f in 4:
+			var fr := wsheet.get_region(Rect2i(f * fw, d * fh, fw, fh))
+			for y in fh:
+				for x in fw:
+					if fr.get_pixel(x, y).a > 0.5 and (x == 0 or x == fw - 1 or y == 0):
+						edge += 1
+			if f > 0 and fr.get_data() != f0.get_data():
+				moving += 1
+	var wj = JSON.parse_string(FileAccess.get_file_as_string(out.path_join("walk8.json")))
+	note("歩き 8 方向: シート %s (%d × %d = %d 列 × %d 行)・Aseprite %s・GIF %s・json の行 %d・1 コマ目とちがうコマ %d / 24 (24 のはず)・紙のはしの画素 %d (0 のはず)" % [
+			ok_png, wsheet.get_width(), wsheet.get_height(), wsheet.get_width() / fw, wsheet.get_height() / fh, ok_ase, ok_gif, wj.rows.size(), moving, edge])
 	main.set_yaw(45.0)
 	await wait(1.5)
 	await shot("05_draw")
