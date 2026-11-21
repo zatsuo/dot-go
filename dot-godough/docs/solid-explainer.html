@@ -1,0 +1,334 @@
+<title>ドット絵から立体へ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* 配置: 1 段組みの読みもの。図は本文の幅いっぱい、色はお手本のキャラ (紺の髪・黄色の内側・黒いコート) から */
+:root {
+  --bg: #eef1f4; --panel: #ffffff; --fg: #1c2630; --muted: #5b6875; --rule: #c9d2da;
+  --hair: #22608b; --inner: #9a8f1f; --skin: #c98a5a; --coat: #2b2530; --hot: #c0397a;
+  --grid: #dfe5ea;
+  --display: "DotGothic16", "Zen Kaku Gothic New", "Yu Gothic", "Meiryo", sans-serif;
+  --body: "Zen Kaku Gothic New", "Yu Gothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  --mono: "Cascadia Mono", "Consolas", "Menlo", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141b22; --panel: #1c252e; --fg: #dfe6ec; --muted: #94a3b1; --rule: #33414d;
+  --hair: #6fb1dc; --inner: #d6d074; --skin: #e0a57a; --coat: #b9b0c2; --hot: #ff7db5;
+  --grid: #26323c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141b22; --panel: #1c252e; --fg: #dfe6ec; --muted: #94a3b1; --rule: #33414d;
+  --hair: #6fb1dc; --inner: #d6d074; --skin: #e0a57a; --coat: #b9b0c2; --hot: #ff7db5;
+  --grid: #26323c; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.85;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; }
+main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; text-wrap: balance; letter-spacing: 0.02em; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.4; margin: 20px 0 0; padding-top: 20px; border-top: 2px solid var(--fg); text-wrap: balance; }
+h3 { font-size: 16px; font-weight: 700; margin: 0; }
+p { margin: 0; }
+.lead { font-size: 18px; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+ul, ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--grid); padding: 1px 5px; border-radius: 3px; }
+figure { margin: 6px 0; background: var(--panel); border: 1px solid var(--rule); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+figure svg { width: 100%; height: auto; display: block; }
+figure img { image-rendering: pixelated; width: 100%; height: auto; display: block; background: #8a8f9a; }
+figcaption { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; line-height: 1.6; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; border-bottom: 2px solid var(--fg); white-space: nowrap; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.step { background: var(--panel); border: 1px solid var(--rule); padding: 10px 12px; min-width: 0; }
+.step b { font-family: var(--display); font-weight: 400; font-size: 17px; display: block; color: var(--hair); }
+.step span { font-size: 13.5px; color: var(--muted); line-height: 1.55; display: block; }
+/* 図の色 */
+svg text { font-family: var(--body); fill: var(--fg); font-size: 13px; }
+svg .sm { font-size: 11.5px; fill: var(--muted); }
+.f-hair { fill: var(--hair); } .f-inner { fill: var(--inner); } .f-skin { fill: var(--skin); } .f-coat { fill: var(--coat); }
+.f-grid { fill: var(--grid); } .f-none { fill: none; } .f-panel { fill: var(--panel); } .f-hot { fill: var(--hot); } .f-muted { fill: var(--muted); }
+.s-fg { stroke: var(--fg); } .s-hair { stroke: var(--hair); } .s-inner { stroke: var(--inner); } .s-muted { stroke: var(--muted); } .s-hot { stroke: var(--hot); } .s-rule { stroke: var(--rule); }
+.w2 { stroke-width: 2; } .w3 { stroke-width: 3.5; } .w1 { stroke-width: 1; } .dash { stroke-dasharray: 4 4; }
+</style>
+
+<main>
+<header>
+  <h1>ドット絵から立体へ</h1>
+  <p class="lead">dot-Godough の「立体」タブが、正面のドット絵 1 枚から、向きを変えたりポーズをつけられる立体を作る仕組み。</p>
+</header>
+
+<section>
+  <p>ひとことで言うと、<b>絵の 1 行ごとに「だ円」を 1 枚置いて、それを積み上げたもの</b>が立体です。横幅は正面の絵から、奥行きは横の絵（無ければ決まり）から取ります。色は、描いてある絵をそのまま面に映します。</p>
+  <div class="steps">
+    <div class="step"><b>1 形</b><span>行ごとのだ円を積む</span></div>
+    <div class="step"><b>2 色</b><span>決めた絵を面に映す</span></div>
+    <div class="step"><b>3 線</b><span>輪郭線は抜いて、引き直す</span></div>
+    <div class="step"><b>4 部品</b><span>頭・体・腕・脚に分けて回す</span></div>
+  </div>
+  <figure>
+    <img src="data:image/png;base64,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" alt="青い髪のキャラを 8 方向から描いた絵。上の段は立ち、下の段は歩き。">
+    <figcaption>実際の出力。左はしは部品の色分け。上の段が「立ち」、下の段が「歩き 1」を 8 方向（45° ごと）で描いたもの。正面・横・後ろは、お手本の表にあった絵をそのまま使っている。</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>1. 形: 行ごとのだ円を積む</h2>
+  <p>正面の絵を上から 1 行ずつ見ます。その行で画素がつながっている区間が、その高さでの「横幅」です。これを真上から見た だ円の横の直径にします。</p>
+  <figure>
+    <svg viewBox="0 0 720 250" role="img" aria-label="正面の絵の 1 行が、真上から見ただ円になる図">
+      <text x="20" y="22">正面の絵（1 行を取り出す）</text>
+      <g transform="translate(20,36)">
+        <rect class="f-grid" x="0" y="0" width="240" height="180"/>
+        <rect class="f-hair" x="60" y="15" width="120" height="75"/><rect class="f-skin" x="90" y="45" width="60" height="45"/>
+        <rect class="f-coat" x="75" y="90" width="90" height="60"/><rect class="f-coat" x="90" y="150" width="22" height="24"/><rect class="f-coat" x="128" y="150" width="22" height="24"/>
+        <rect class="f-none s-hot w2" x="56" y="58" width="128" height="15"/>
+      </g>
+      <text class="sm" x="20" y="238">ピンクの枠 = いま見ている行。つながった区間の幅 = 横幅</text>
+      <path class="f-none s-muted w2" d="M275 102 H345" marker-end="url(#ah)"/>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="f-muted" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+      <text x="370" y="22">その行を真上から見る</text>
+      <g transform="translate(540,120)">
+        <ellipse class="f-hair" cx="0" cy="0" rx="120" ry="78" opacity="0.28"/><ellipse class="f-none s-hair w2" cx="0" cy="0" rx="120" ry="78"/>
+        <path class="f-none s-hot w2" d="M-120 96 H120"/><text x="0" y="116" text-anchor="middle">横幅（正面の絵から）</text>
+        <path class="f-none s-inner w2" d="M-140 -78 V78"/><text class="sm" x="-146" y="-84" text-anchor="end">奥行き</text><text class="sm" x="-146" y="-68" text-anchor="end">（横の絵か</text><text class="sm" x="-146" y="-52" text-anchor="end">決まりから）</text>
+        <text class="sm" x="0" y="-86" text-anchor="middle">奥</text><text class="sm" x="0" y="74" text-anchor="middle">手前（正面の絵が見ている側）</text>
+      </g>
+    </svg>
+    <figcaption>脚のように 1 行に区間が 2 つあれば、だ円も 2 つ置く。これを全部の行でやって積むと、頭は玉、体は平たい筒、脚は 2 本の柱になる。</figcaption>
+  </figure>
+  <h3>奥行きはどこから来るか</h3>
+  <ul>
+    <li><b>横の絵があるとき</b>: その行の、横の絵での幅がそのまま奥行きです。正面と横の 2 枚で、形は 1 つに決まります。</li>
+    <li><b>正面 1 枚だけのとき</b>: 決まりで作ります。横幅 × 頭 1.0・体 0.65・脚 1.5。この数字は、お手本の表にあった本物の横向きの絵に合わせました。靴はつま先を 1 画素だけ前へ出します。</li>
+    <li><b>頭と体と脚の境目</b>: 首は「高さの 30〜70% でいちばん細い行」、脚は「下のほうで区間が 2 つに分かれ始める行」から下です。</li>
+  </ul>
+  <p>正面 1 枚だけの推定は当てずっぽうです。お手本の青い髪のキャラで試すと、推定した横の絵は本物と 28〜33% しか同じ画素になりませんでした。形の目安であって、絵としては描き直す前提です。</p>
+</section>
+
+<section>
+  <h2>2. 色: 部品ごとに、絵を 1 枚えらんで映す</h2>
+  <p>立体そのものは色を持っていません。描くたびに、部品（頭・体・腕…）ごとに「いま見ている向きにいちばん近い絵」を 1 枚だけ選び、その絵を面に映します。<b>1 つの部品の中で 2 枚の絵を混ぜません。</b></p>
+  <figure>
+    <svg viewBox="0 0 720 250" role="img" aria-label="見ている向きに近い絵を 1 枚だけ選ぶ図">
+      <g transform="translate(200,120)">
+        <ellipse class="f-none s-rule w1" cx="0" cy="0" rx="120" ry="70"/>
+        <path class="f-none s-hair w3" d="M-120 0 A120 70 0 0 0 96 42"/>
+        <path class="f-none s-muted w3" d="M96 42 A120 70 0 0 0 120 0"/>
+        <path class="f-none s-muted w2" d="M-60 112 L-30 74" marker-end="url(#ah)"/><text class="sm" x="-66" y="128" text-anchor="end">見ている向き (ななめ)</text>
+        <text class="sm" x="0" y="-84" text-anchor="middle">真上から見た頭の 1 行</text>
+      </g>
+      <g transform="translate(400,56)">
+        <path class="f-none s-hair w3" d="M0 6 H40"/><text x="50" y="11">正面の絵を、少しずらして映す</text>
+        <path class="f-none s-muted w3" d="M0 40 H40"/><text x="50" y="45">絵が届かない所は「部品の色」</text>
+        <text class="sm" x="0" y="84">横の絵は、この向きでは頭に使わない。</text>
+        <text class="sm" x="0" y="104">45° をこえて横に近づいたら、</text>
+        <text class="sm" x="0" y="124">横の絵 1 枚に切りかわる。</text>
+      </g>
+    </svg>
+    <figcaption>「部品の色」は、頭なら頭でいちばん多い色（髪）、体ならその行でいちばん多い色。正面 1 枚しか無いときの後ろ姿も、これで塗られている。</figcaption>
+  </figure>
+  <ul>
+    <li><b>決めた向きは絵そのまま</b>: 絵がある向きをぴったり見るときは、線も含めてその絵をそのまま写します。ポーズをつけていても、動かしていない部品は元の絵と同じです。</li>
+    <li><b>左右対称として扱う</b>: 右向きの絵しか無ければ、左向きには鏡にして使います。</li>
+    <li><b>絵の回りこみ</b>: 向きがずれた分は、絵を立体どおりに回すのではなく、その 6 割だけ回りこませます（スライダーで変えられます）。理由は 6 で。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>3. 線: 輪郭線は抜いて、引き直す</h2>
+  <p>輪郭線を色と一緒に面へ映すと困ったことが起きます。正面の絵のふちにあった線は、横を向いたとき体の真ん中に回りこんで、顔や服の上に縦の線として出てしまいます。そこで線だけは別に扱います。</p>
+  <figure>
+    <svg viewBox="0 0 720 190" role="img" aria-label="輪郭線を抜いて、内側の色で埋め、描くたびにふちへ引き直す流れ">
+      <g transform="translate(30,30)">
+        <rect class="f-coat" x="0" y="0" width="120" height="110"/><rect class="f-hair" x="12" y="12" width="96" height="86"/>
+        <text x="60" y="134" text-anchor="middle">元の絵</text><text class="sm" x="60" y="150" text-anchor="middle">ふちに線がある</text>
+      </g>
+      <path class="f-none s-muted w2" d="M170 85 H230" marker-end="url(#ah)"/>
+      <g transform="translate(250,30)">
+        <rect class="f-hair" x="0" y="0" width="120" height="110"/>
+        <text x="60" y="134" text-anchor="middle">線を抜いた絵</text><text class="sm" x="60" y="150" text-anchor="middle">内側の色で埋める → これを面に映す</text>
+      </g>
+      <path class="f-none s-muted w2" d="M390 85 H450" marker-end="url(#ah)"/>
+      <g transform="translate(480,30)">
+        <path class="f-coat" d="M20 0 H110 V20 H130 V110 H0 V20 H20 Z"/><path class="f-hair" d="M32 12 H98 V32 H118 V98 H12 V32 H32 Z"/>
+        <text x="65" y="134" text-anchor="middle">描いた絵のふちに引き直す</text><text class="sm" x="65" y="150" text-anchor="middle">どの向きでも、線はふちにいる</text>
+      </g>
+    </svg>
+    <figcaption>覚えておくのは「この塗りの色のふちは、この線の色」という組だけ（髪の青 → 紺、コートの黒 → 暗い茶）。</figcaption>
+  </figure>
+  <ul>
+    <li><b>線の色の見つけ方</b>: ふちの画素に集まっている色（その色の 35% 以上がふちにある）を線の色とみなします。</li>
+    <li><b>二重の輪郭</b>: ふちのほとんどが 1 色（白いふちなど）なら、それを外のふちとして抜き、その内側の線ももう 1 回同じやり方で抜きます。</li>
+    <li><b>内側の線はそのまま</b>: 髪と顔の境、服のしわは、色の一部として面に映ります。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>4. 部品と関節</h2>
+  <p>ポーズをつけるには、どの画素がどの部品かを知る必要があります。正面の絵の画素 1 つ 1 つに部品の番号を持たせ、部品ごとに 1 のだ円の積み重ねを作ります。</p>
+  <figure>
+    <svg viewBox="0 0 720 240" role="img" aria-label="部品の親子関係: 体に頭と腕がつき、脚は別。腕と脚はひじとひざで 2 つに分かれる">
+      <g font-size="13">
+        <rect class="f-panel s-fg w1" x="300" y="96" width="120" height="40"/><text x="360" y="121" text-anchor="middle">体</text>
+        <rect class="f-panel s-fg w1" x="300" y="14" width="120" height="40"/><text x="360" y="39" text-anchor="middle">頭</text>
+        <rect class="f-panel s-fg w1" x="110" y="96" width="120" height="40"/><text x="170" y="121" text-anchor="middle">腕（つけ根側）</text>
+        <rect class="f-panel s-fg w1" x="490" y="96" width="120" height="40"/><text x="550" y="121" text-anchor="middle">腕（つけ根側）</text>
+        <rect class="f-panel s-hair w2" x="110" y="176" width="120" height="40"/><text x="170" y="201" text-anchor="middle">ひじから先</text>
+        <rect class="f-panel s-hair w2" x="490" y="176" width="120" height="40"/><text x="550" y="201" text-anchor="middle">ひじから先</text>
+        <path class="f-none s-fg w1" d="M360 96 V54 M300 116 H230 M420 116 H490 M170 136 V176 M550 136 V176"/>
+        <text class="sm" x="20" y="70">体を傾けると、</text><text class="sm" x="20" y="86">頭と腕はついていく</text>
+        <text class="sm" x="640" y="70" text-anchor="end">脚は体と別（腰から生える）。</text><text class="sm" x="700" y="86" text-anchor="end">脚 → ひざから下 も同じ親子</text>
+      </g>
+    </svg>
+    <figcaption>親を回すと子もついていく。回す中心（つけ根）は、頭 = 頭のいちばん下、腕 = 腕のいちばん上、脚 = 脚のいちばん上、ひじ・ひざ = その部品のいちばん上。</figcaption>
+  </figure>
+  <ul>
+    <li><b>自動の分け方</b>: 首より上が頭、脚の行から下が脚、あいだが体。体の両はしで、手（顔と同じ肌の色）のある行までを腕にします。くわしい手順はこの下に。</li>
+    <li><b>まちがいは塗って直す</b>: 「部品を見る・塗り直す」で色分けを見て、正面の絵の上をなぞります。</li>
+    <li><b>関節</b>: 腕と脚は、行の真ん中で「つけ根側」と「先」の 2 つに分けます。塗り分けは腕・脚のままでよく、分けるのは自動です。</li>
+    <li><b>服にかくれた脚</b>: 脚は、服の下に見えない分を上へ足してあります（首から脚までの 2 割。「脚のつけ根の高さ」で変えられます）。つけ根はその上のはし、つまり腰です。服から出ている脚が 3 行しか無くても、腰から振れます。</li>
+  </ul>
+  <h3>部品の自動推定の手順</h3>
+  <p>学習したものは使っていません。正面の絵 1 枚を、行ごとの幅と色だけで分けています。「2 頭身ほどで、まっすぐ立って、手が肌色」という絵を前提にした決まりです。</p>
+  <figure>
+    <img src="data:image/png;base64,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" alt="お手本の 2 人の正面の絵と、自動で分けた部品の色分け">
+    <figcaption>お手本の 2 人を自動で分けた結果。黄 = 頭、緑 = 体、青と赤 = 腕（うすい色がひじから先）、紫とだいだい = 脚。コートが長いので、見えている脚は下の 3〜4 行だけ。</figcaption>
+  </figure>
+  <ol>
+    <li><b>行ごとの幅を数える</b>: 上から 1 行ずつ、画素のある区間とその幅を調べます。</li>
+    <li><b>首を見つける</b>: 高さの 30〜70% のあいだで、いちばん幅の細い行を首にします。それより上は全部「頭」です。</li>
+    <li><b>脚の始まりを見つける</b>: 高さの 60% より下で、「幅 2 画素以上の区間が 2 つになる行」か「幅が体のいちばん太い所の 55% 以下になる行」を探します。そこから下は靴も含めて全部「脚」です。手の 1 画素を脚とまちがえないよう、1 画素だけの区間は数えません。</li>
+    <li><b>脚を左右に分ける</b>: 脚の行ぜんぶの左はしと右はしの真ん中で切ります。</li>
+    <li><b>肌の色を決める</b>: 頭の下半分の、横の真ん中 3 分の 1 でいちばん多い色を肌の色とします（顔の真ん中は肌、という前提）。</li>
+    <li><b>手を探して腕を決める</b>: 首と脚のあいだの行で、左右のはしから 4 画素以内にある肌の色を「手」とみなします。手のあるいちばん下の行までが腕の長さ、はしから手までの画素数（2〜4）が腕の幅です。首の 1 行下から手の 1 行下まで、体のはしからその幅を「腕」にします。</li>
+    <li><b>細い行はとばす</b>: 腕 2 本 + 3 画素より細い行には腕を作りません（体が無くなってしまうため）。</li>
+    <li><b>手が見つからないとき</b>: 首から脚までの 6 割の高さまで、幅 2 画素を腕にします。</li>
+    <li><b>関節で分ける</b>: 腕は行の数の真ん中がひじ。脚は、服にかくれた分を足した長さの真ん中がひざです。</li>
+  </ol>
+  <p>うまくいかない絵もあります。手袋や長いそでで手が肌色でない絵、腕を体からはなして描いた絵、すわっている絵は、決まりの前提から外れます。横や後ろの絵からは部品を分けていません（分けるのは正面の絵だけ）。まちがっていたら、色分けを見ながら塗り直すのが前提です。</p>
+</section>
+
+<section>
+  <h2>5. ポーズ: 回した部品の描き方</h2>
+  <p>回していない部品は、行がそのまま画面の行に並ぶので、だ円と視線の交わりを式で解けます（決めた絵とぴったり合うのはこのおかげ）。回した部品は行がななめになるので、同じ手は使えません。</p>
+  <figure>
+    <svg viewBox="0 0 720 220" role="img" aria-label="回した部品は、視線を部品の中の座標に直して少しずつ進め、当たった所を見つける">
+      <g transform="translate(180,118) rotate(-32)">
+        <rect class="f-hair" x="-34" y="-74" width="68" height="16" opacity="0.35"/><rect class="f-hair" x="-34" y="-56" width="68" height="16" opacity="0.5"/>
+        <rect class="f-hair" x="-34" y="-38" width="68" height="16" opacity="0.35"/><rect class="f-hair" x="-34" y="-20" width="68" height="16" opacity="0.5"/>
+        <rect class="f-hair" x="-34" y="-2" width="68" height="16" opacity="0.35"/><rect class="f-hair" x="-34" y="16" width="68" height="16" opacity="0.5"/>
+        <rect class="f-hair" x="-34" y="34" width="68" height="16" opacity="0.35"/><rect class="f-hair" x="-34" y="52" width="68" height="16" opacity="0.5"/>
+      </g>
+      <path class="f-none s-hot w2 dash" d="M30 104 H330"/>
+      <g class="f-hot"><circle cx="60" cy="104" r="3"/><circle cx="84" cy="104" r="3"/><circle cx="108" cy="104" r="3"/><circle cx="132" cy="104" r="3"/><circle cx="156" cy="104" r="6"/></g>
+      <text class="sm" x="30" y="92">視線（画素 1 つぶん）</text><text class="sm" x="120" y="134">最初に当たった所</text>
+      <text class="sm" x="60" y="208">回した部品。段はななめになっている</text>
+      <g transform="translate(390,40)">
+        <text x="0" y="14">回した部品の 1 画素の決め方</text>
+        <text class="sm" x="0" y="42">1. 画素から奥へ向かう視線を、部品の「回す前」の座標に直す</text>
+        <text class="sm" x="0" y="66">2. 0.25 画素ずつ進めて、どの行のだ円の中に入ったかを調べる</text>
+        <text class="sm" x="0" y="90">3. 入った所の色を、回す前の場所で 2 と同じやり方で取る</text>
+        <text class="sm" x="0" y="114">4. いくつかの部品が重なったら、いちばん手前を残す</text>
+      </g>
+    </svg>
+    <figcaption>色は「回す前の場所」で取るので、腕を上げても、腕に描いてあった線や手の肌色は腕についてくる。</figcaption>
+  </figure>
+  <ul>
+    <li><b>手・足の先をつまむ（IK）</b>: うすい丸をつまむと、ひじ・ひざの曲げ方を逆算して、腕・脚ぜんたいが先についてきます。2 本の長さと、つけ根から目標までの距離で三角形が 1 つに決まるので、それを解いています。ひじは後ろ、ひざは前へ曲がります。</li>
+    <li><b>つまんで回す</b>: 濃い丸（頭・体・ひじ・ひざ）をつまむと、つけ根のまわりに、いま見ている向きを軸にして回ります。正面でつまむと左右に開き、横の絵でつまむと前後に振れます。</li>
+    <li><b>頭を回すと横顔が出る</b>: どの絵を使うかは「部品から見た向き」で決めるので、頭だけ横へ 45° より大きく回せば横の絵が使われます。</li>
+    <li><b>どけた下は 1 色</b>: 腕をどけた下の体には絵が無いので、その行でいちばん多い色で塗ります。</li>
+    <li><b>腕は丸い管</b>: 絵の腕は体に半分かくれて幅 2 画素ほどしか無く、行ごとのだ円のまま回すと 1 画素の棒になって切れます。動かした腕だけは、行の真ん中をなめらかにつないだ線のまわりの丸い管として描きます。半径は 1.5 画素より細くせず、太らせる分は体の側へ足します。ひじのはしは丸いので、曲げてもすきまが空きません。</li>
+    <li><b>体に描いてある手を消す</b>: 横や後ろの絵には、体の上に手が描きこんであります。腕を動かすと手は腕についていくので、体の絵に残った手（首より下の肌の色と、そのまわりの線）は使わず、体の色で塗ります。どちらの腕の手かは、絵の左右（横の絵なら手前の腕）で決めます。</li>
+    <li><b>回した部品は線を引き直す</b>: 絵を線ごとそのまま写すのは、回していない部品だけです。回した部品に元の場所の線を写すと、線がでたらめな所に出るので、線を抜いた絵を映してから、ふちに線を引き直します。</li>
+    <li><b>重なった所にも線</b>: 動かした腕・脚が、ほかの部品より 1 画素以上手前に重なる所にも、ふちどりを引きます。黒い服の前の黒い腕が溶けないようにするためです。小さい手は、線でつぶさず肌の色のまま残します。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>6. ななめを崩さない工夫</h2>
+  <p>手描きの正面と横は、同じ立体を 2 方向から見た絵にはなっていません。たとえば横顔の肌は、立体として正しい幅よりずっと広く描かれます。だから、ななめで正面の絵と横の絵を半分ずつ使うと、横の絵の肌が正面の絵の髪の中に入りこみます。</p>
+  <figure>
+    <svg viewBox="0 0 720 210" role="img" aria-label="2 枚の絵を混ぜると肌が髪に入りこむ。1 枚をずらすだけなら崩れない">
+      <g transform="translate(180,96)">
+        <text x="0" y="-74" text-anchor="middle">混ぜる（やめた方法）</text>
+        <rect class="f-hair" x="-80" y="-56" width="160" height="112"/>
+        <rect class="f-skin" x="-10" y="-20" width="60" height="60"/><rect class="f-skin" x="-70" y="-6" width="34" height="34"/>
+        <path class="f-none s-hot w2 dash" d="M-22 -62 V62"/>
+        <text class="sm" x="-52" y="76" text-anchor="middle">横の絵から</text><text class="sm" x="30" y="76" text-anchor="middle">正面の絵から</text>
+        <text class="sm" x="0" y="96" text-anchor="middle">継ぎ目で顔が割れ、肌が髪の中に出る</text>
+      </g>
+      <g transform="translate(540,96)">
+        <text x="0" y="-74" text-anchor="middle">1 枚をずらす（今の方法）</text>
+        <rect class="f-hair" x="-80" y="-56" width="160" height="112"/>
+        <rect class="f-skin" x="-22" y="-20" width="78" height="60"/>
+        <path class="f-none s-muted w2" d="M-66 10 H-30" marker-end="url(#ah)"/>
+        <text class="sm" x="0" y="76" text-anchor="middle">正面の顔が、向いたほうへ少しずれる</text>
+        <text class="sm" x="0" y="96" text-anchor="middle">顔は 1 枚の絵のまま</text>
+      </g>
+    </svg>
+    <figcaption>ドット絵のななめ顔は、たいてい「正面の顔を少し横へずらした絵」として描かれる。それと同じことをしている。</figcaption>
+  </figure>
+  <ul>
+    <li><b>部品ごとに絵は 1 枚</b>: その部品から見た向きにいちばん近い絵を選びます。45° ちょうどのように同じ近さなら、正面（後ろ）を先に使います。</li>
+    <li><b>少しだけ回りこませる</b>: 向きのずれの 6 割だけ絵をずらします。立体どおり（10 割）に回すと、顔がはしへ流れて、反対側は絵のはしの 1 列が何画素にも引きのばされます。</li>
+    <li><b>引きのばしは塗りつぶす</b>: それでも 2 倍をこえて引きのばされる所は、絵を使わず部品の色（頭なら髪）で塗ります。</li>
+    <li><b>ぴったりの向きは絵そのまま</b>: 線を抜いて引き直すのは、向きがずれているときだけです。ポーズを少し動かしても、横顔は横の絵のまま残ります（頭を回していないかぎり）。</li>
+    <li><b>ななめの絵も決められる</b>: 45° ごとのななめの絵に描くと、その絵が決めた絵になります。面に貼りつくので、ポーズをつけても残ります。形には使いません。</li>
+  </ul>
+  <h3>それでも残るもの</h3>
+  <ul>
+    <li><b>切りかわり</b>: 45° をまたぐと、頭が「正面の絵をずらしたもの」から「横の絵をずらしたもの」へ切りかわります。8 方向の絵には出ませんが、なめらかに回すと 1 コマで変わります。</li>
+    <li><b>ぎざぎざ</b>: 行ごとに別々に計算するので、ななめの輪郭が 1 画素でこぼこすることがあります。</li>
+    <li><b>好みのななめ顔</b>: 自動のずらし方が合わなければ、ななめの絵を 1 回描くのがいちばん確実です。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>7. 後ろ姿はどう作っているか</h2>
+  <p>後ろ専用の仕組みはありません。同じ立体を、後ろから見て描いているだけです。違いが出るのは「色をどの絵から取るか」です。</p>
+  <figure>
+    <img src="data:image/png;base64,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" alt="横から後ろをまわって反対の横まで、15〜30° ずつ描いた 2 人の絵">
+    <figcaption>横（90°）から後ろ（180°）をまわって反対の横（270°）まで。上は後ろの絵を描いてあるキャラ、下は正面 1 枚だけのキャラ。下の後ろ姿は、髪の色と服の色で塗っただけになっている。</figcaption>
+  </figure>
+  <ul>
+    <li><b>形</b>: だ円は前と後ろが同じ形なので、後ろから見た輪郭は、正面の輪郭を鏡にしたものになります。後ろ頭のふくらみのような、前後で違う形は表せません（横の絵を描くと、奥行きの位置はそこから取ります）。</li>
+    <li><b>後ろの絵があるとき</b>: それが「決めた絵」です。真後ろはその絵そのまま、そこから 45° 以内は、その絵を少しずらして映します。左右は逆になるので、鏡にして貼ります。</li>
+    <li><b>絵の輪郭が正</b>: 手描きの後ろの絵の輪郭は、立体を後ろから見た輪郭（正面の鏡）と 1 画素ずれたり、所どころ食いちがったりします。そのまま映すと、片側は線が消え、反対側は線が 2 重になります。そこで、絵と立体がいちばん重なる横のずれをはかって合わせ、真後ろをぴったり見ているときは、回していない部品の輪郭を絵のとおりにします（絵に無い所は描かず、絵にある所は絵から足す）。横の絵も同じです。</li>
+    <li><b>後ろの絵が無いとき</b>: いちばん近い絵が 100° より遠ければ、絵を使いません。正面 1 枚だけなら、横をこえた先は全部これです。かわりに「部品の色」で塗ります。</li>
+    <li><b>部品の色とは</b>: 頭は、頭でいちばん多い色（たいてい髪の色）。体・腕・脚は、その行でいちばん多い色です。だから服のしま模様やベルトは横じまとして残り、手の行は肌の色になります。顔は消えます。</li>
+    <li><b>線</b>: 塗ったあとで、ふちの画素をその色の線の色に変えます。部品の色で塗った所は、元の絵でその色がふちにいたときの線の色を使い、分からなければ、いちばんよく使われている線の色にします。</li>
+    <li><b>ななめ後ろ</b>: 横の絵と後ろの絵のうち、近いほうを 1 枚ずらして使います。正面 1 枚だけなら、後ろと同じく部品の色です。</li>
+  </ul>
+  <p>正面 1 枚だけで推定した後ろ姿は、お手本の本物の後ろ姿と 49〜50% の画素が同じでした。えり足の色、フード、背中の模様のように正面から見えないものは分からないので、後ろの絵は 1 回描くのが前提です。描くと、ななめ後ろにも使われます。</p>
+</section>
+
+<section>
+  <h2>8. 絵と立体の関係（どこを直すと何が変わるか）</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>描く所</th><th>何が変わるか</th><th>ポーズについてくるか</th></tr></thead>
+    <tbody>
+      <tr><td>正面の絵</td><td>立体の横幅と、前側の色</td><td>ついてくる</td></tr>
+      <tr><td>横の絵</td><td>立体の奥行きと、横側の色</td><td>ついてくる</td></tr>
+      <tr><td>後ろの絵</td><td>後ろ側の色</td><td>ついてくる</td></tr>
+      <tr><td>ななめ（45° ごと）の絵</td><td>その向きと、その近くの向きの色（形は変わらない）</td><td>ついてくる</td></tr>
+      <tr><td>そのあいだの向き・ポーズ中の絵</td><td>その 1 枚の画素だけ（ドット直し）</td><td>ついてこない</td></tr>
+      <tr><td>部品の塗り分け</td><td>どの画素がどの部品と一緒に動くか</td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>9. いまの限界</h2>
+  <ul>
+    <li><b>1 行 1 だ円</b>: 体の前に腕がある、といった重なりは正面の絵からは分かれません。部品の塗り分けで教える必要があります。</li>
+    <li><b>服は体と一緒に回るだけ</b>: すそが揺れたり、すわったときに広がったりはしません。</li>
+    <li><b>そでは体の絵に残る</b>: 横・後ろの絵で体の上に描いてある腕のうち、消すのは手（肌の色）だけです。体と違う色のそでは残ります。</li>
+    <li><b>大きい頭に隠れる</b>: 腕を真上に上げると、頭の玉の中に入って見えなくなります。</li>
+    <li><b>正面 1 枚だけの推定は目安</b>: 後ろ髪の内側の色のように、正面から見えないものは分かりません。</li>
+  </ul>
+  <p class="lead" style="font-size:14.5px">中身は <code>scripts/solid.gd</code>、決まりの一覧は <code>docs/SOLID.md</code>、確かめの絵は <code>tools/solid_pose_shot.gd</code> と <code>tools/solid_shot.gd</code>。</p>
+</section>
+</main>
